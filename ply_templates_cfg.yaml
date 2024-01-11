@@ -1,0 +1,23 @@
+model_dir: "/media/david/Sasha_external/David/Templates/tracebot-management/TraceBotMeshesRealistic/models" #path to ply files
+dataset_name: "ply" #dataset_name
+output_dir: "output" #output folder
+obj_pose: "predefined_poses/obj_poses_level2.npy" # level 1:  42 poses, level 2: 162 poses
+cam_pose: "predefined_poses/cam_poses_level2.npy" # level 3: 642 poses, level 4: 2562 poses for more poses check readme
+poses: "all" # all -> templates from all angles, upper -> templates from upper hemisphere
+camer_distance_scaling: 0.7 # scaling of camera distance: smaller -> closer
+set_color: "RandomTexture" # set color "Grey", "RandomTexture", "False"
+texture_dir: "/media/david/Sasha_external/David/000_TRACEBOT/textures" # path to textures used for RandomTexture download via "blenderproc download cc_textures"
+
+cam:
+  height: 720
+  width: 1280
+  K:
+    - 909.9260864257812
+    - 0.0 
+    - 643.5625
+    - 0.0
+    - 907.9168701171875
+    - 349.0171813964844
+    - 0.0
+    - 0.0
+    - 1.0
