@@ -27,8 +27,11 @@ if config['poses'] == 'upper':
     cam_poses = np.load(config['cam_pose'])
     poses = poses[cam_poses[:, 2, 3] >= 0]
 poses[:, :3, 3] *= config["camer_distance_scaling"]
-poses[:, :3, :3] = poses[:, :3, :3] / 1000.0
-poses[:, :3, 3] = poses[:, :3, 3] / 1000.0
+
+# Lighting Factor
+factor = 1000.0
+poses[:, :3, :3] = poses[:, :3, :3] / factor
+poses[:, :3, 3] = poses[:, :3, 3] / factor
 # load specified bop objects into the scene
 print(poses.shape)
 
@@ -131,4 +134,7 @@ for obj in bop_objs:
         img = Image.composite(rgb, black_img, mask)
         img.save(os.path.join(obj_data_dir, "{:06d}.png".format(idx_frame)))
     obj.hide(True)
+
+poses[:, :3, :3] = poses[:, :3, :3] * factor
+poses[:, :3, 3] = poses[:, :3, 3] * factor
 np.save(os.path.join(config['output_dir'], name, "obj_poses.npy"), poses)
