@@ -35,7 +35,7 @@ poses[:, :3, 3] = poses[:, :3, 3] / factor
 # load specified bop objects into the scene
 print(poses.shape)
 
-if config['bop_dataset_name'] in ['lm', 'ycbv', 'hb', 'tyol', 'itodd']:
+if config['bop_dataset_name'] in ['lm', 'ycbv', 'hb', 'tyol', 'itodd', 'tudl', 'icbin']:
     bop_objs = bproc.loader.load_bop_objs(
         bop_dataset_path=os.path.join(config['bop_parent_path'], 
         config['bop_dataset_name']),
