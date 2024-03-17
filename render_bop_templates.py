@@ -7,6 +7,7 @@ from PIL import Image
 import sys
 import yaml
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument('config_path', default="bop_templates_cfg.yaml", help="Path to config file")
 args = parser.parse_args()
@@ -26,7 +27,7 @@ poses = np.load(config['obj_pose'])
 if config['poses'] == 'upper':
     cam_poses = np.load(config['cam_pose'])
     poses = poses[cam_poses[:, 2, 3] >= 0]
-poses[:, :3, 3] *= config["camer_distance_scaling"]
+poses[:, :3, 3] *= config["camera_distance_scaling"]
 
 # Lighting Factor
 factor = 1000.0

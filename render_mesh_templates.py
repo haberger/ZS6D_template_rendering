@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 import yaml
 import sys
-
+from mathutils import Matrix, Vector
 
 def render(config):
 
@@ -16,7 +16,7 @@ def render(config):
     if config['poses'] == 'upper':
         cam_poses = np.load(config['cam_pose'])
         poses = poses[cam_poses[:, 2, 3] >= 0]
-    poses[:, :3, 3] *= config["camer_distance_scaling"]
+    poses[:, :3, 3] *= config["camera_distance_scaling"]
     # Lighting Factor
     factor = 1000.0
     poses[:, :3, :3] = poses[:, :3, :3] / factor
@@ -26,7 +26,7 @@ def render(config):
     print(poses.shape)
     id_mapping = {}
     category_ids = []
-    ply_objs = []
+    mesh_objs = []
     mesh_dir = config['model_dir']
 
     files = sorted(os.listdir(mesh_dir))
@@ -34,28 +34,37 @@ def render(config):
         print(f"Warning: no objects loaded from dir: {mesh_dir}")
     else:
         for filename in sorted(os.listdir(mesh_dir)):
-            if filename[-3:] != "ply":
-                continue
-            obj = bproc.loader.load_obj(os.path.join(mesh_dir, filename))[0]
-            id = int(filename[4:-4])
-            if id >= 255:
-                raise Exception("filename needs to be in format obj_xxxxxx.ply, where xxxxxx is 0 padded number smaller than 255")
-            if id not in category_ids:
-                print(f"Loading object {filename} with id {id}")
+            if config['mesh_type'] == "ply":
+                if filename[-3:] != "ply":
+                    continue
+                if filename[:-4] in category_ids:
+                    raise Exception("duplicate object names")
+                obj = bproc.loader.load_obj(os.path.join(mesh_dir, filename))[0]
+                print(f"Loading object {filename}")
                 obj.hide(True) 
-                category_ids.append(id)
-                obj.set_cp("category_id", id)
-                id_mapping[filename] = id
+                category_ids.append(filename[:-4])
+                obj.set_cp("category_id", filename[:-4])
                 obj.set_shading_mode('auto')
-                ply_objs.append(obj)
-            else:
-                raise Exception("filename needs to be in format obj_xxxxxx.ply, where xxxxxx is 0 padded number smaller than 255")
-    if len(ply_objs) == 0:
+                mesh_objs.append(obj)
+            if config['mesh_type'] == "obj":
+                if filename[-3:] != "obj":
+                    continue
+                if filename[:-4] in category_ids:
+                    raise Exception("duplicate object names")
+                category_ids.append(filename[:-4])
+                obj = bproc.loader.load_obj(os.path.join(mesh_dir, filename))[0]
+                print(f"Loading object {filename}")
+                obj.set_cp("category_id", filename[:-4])
+                obj.hide(True) 
+                obj.set_shading_mode('auto')
+                mesh_objs.append(obj)
+
+    if len(mesh_objs) == 0:
         raise Exception("No objects loaded from dir: {mesh_dir}")
 
     if config['set_color'] == "Grey":
         print("Setting color to grey")
-        for j, obj in enumerate(ply_objs):
+        for j, obj in enumerate(mesh_objs):
             obj.set_shading_mode('auto')
             mat = obj.get_materials()[0]
             grey_col = np.random.uniform(0.5, 0.7)   
@@ -63,7 +72,7 @@ def render(config):
     elif config['set_color'] == "RandomTexture":
         print("Loading cc textures")
         cc_textures = bproc.loader.load_ccmaterials(config["texture_dir"])
-        for j, obj in enumerate(ply_objs):
+        for j, obj in enumerate(mesh_objs):
             random_cc_texture = np.random.choice(cc_textures)
             obj.replace_materials(random_cc_texture)
             mat = obj.get_materials()[0]      
@@ -98,7 +107,7 @@ def render(config):
     # bpy.ops.object.origin_set(type="ORIGIN_GEOMETRY", center="BOUNDS")
 
     # set shading
-    for j, obj in enumerate(ply_objs):
+    for j, obj in enumerate(mesh_objs):
         obj.set_shading_mode('auto')
         obj.hide(True)
 
@@ -114,7 +123,8 @@ def render(config):
 
     black_img = Image.new('RGB', (config["cam"]["width"], config["cam"]["height"]))
     name = config['dataset_name']
-    for obj in ply_objs:
+    # i = 0
+    for obj in mesh_objs:
         obj.hide(False)
         
         obj_data_dir = os.path.join(config['output_dir'], name, f'obj_{obj.get_cp("category_id")}')
@@ -124,9 +134,12 @@ def render(config):
         else:
             print(f"Directory '{obj_data_dir}' already exists.")
         for idx_frame, obj_pose in enumerate(poses):
+            # if i != 0:
+            #     break
             obj.set_local2world_mat(obj_pose)
+            # break
             data = bproc.renderer.render()
-            data.update(bproc.renderer.render_segmap(map_by="class", use_alpha_channel=True))
+            #data.update(bproc.renderer.render_segmap(map_by="class", use_alpha_channel=True))
             # # Map distance to depth
             depth = bproc.postprocessing.dist2depth(data["distance"])[0]
             mask = np.uint8((depth < 1000) * 255)
