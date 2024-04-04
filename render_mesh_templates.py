@@ -5,7 +5,6 @@ import numpy as np
 from PIL import Image
 import yaml
 import sys
-from mathutils import Matrix, Vector
 
 def render(config):
 
@@ -61,6 +60,10 @@ def render(config):
 
     if len(mesh_objs) == 0:
         raise Exception("No objects loaded from dir: {mesh_dir}")
+    
+    for obj in mesh_objs:
+        obj.blender_obj.scale *= config["mesh_scale"]
+        obj.persist_transformation_into_mesh()
 
     if config['set_color'] == "Grey":
         print("Setting color to grey")
@@ -128,6 +131,7 @@ def render(config):
         obj.hide(False)
         
         obj_data_dir = os.path.join(config['output_dir'], name, f'obj_{obj.get_cp("category_id")}')
+
         if not os.path.exists(obj_data_dir):
             os.makedirs(obj_data_dir)
             print(f"Directory '{obj_data_dir}' created.")
