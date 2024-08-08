@@ -1,7 +1,9 @@
-bop_parent_path: "/home/david/work/bop_dataset" #path to BOP dataset can be downloaded from https://bop.felk.cvut.cz/datasets/
+bop_parent_path: "/home/david/work/bop_dataset" #path to BOP dataset (only the meshes and base are needed), can be downloaded from https://bop.felk.cvut.cz/datasets/
 bop_dataset_name: "ycbv" #support for lm, tless, ycbv, hb, tyol, itodd
-output_dir: "output" #output folder
-obj_pose: "predefined_poses/obj_poses_level2.npy" # level 1:  42 poses, level 2: 162 poses
-cam_pose: "predefined_poses/cam_poses_level2.npy" # level 3: 642 poses, level 4: 2562 poses for more poses check readme
-poses: "all" # all -> templates from all angles, upper -> templates from upper hemisphere
+output_dir: "output" #output folder for the rendered templates
+obj_pose: "predefined_poses/obj_poses_level1.npy" # choose the level depending on how many poses you want to render:
+                                                  # obj_pose and cam_pose must have the same level
+#                                                 # level 0:  42 poses, level 1: 162 poses
+cam_pose: "predefined_poses/cam_poses_level1.npy" # level 2: 642 poses, level 3: 2562 poses, for more poses check readme
+poses: "all" # "all" -> templates from all angles, "upper" -> templates from upper hemisphere
 camera_distance_scaling: 0.8 # scaling of camera distance: smaller value -> obj closer to camera

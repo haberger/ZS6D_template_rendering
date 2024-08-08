@@ -81,7 +81,9 @@ def render(config):
             mat = obj.get_materials()[0]      
             mat.set_principled_shader_value("Alpha", 1.0)
     elif config['set_color'] == "False":
-        pass
+        mat = obj.get_materials()[0]
+        # mat.set_principled_shader_value("Roughness", 0.5)
+        # mat.set_principled_shader_value("Specular", 0.0)
     else:
         raise ValueError("Unknown color setting in config set_color")
 
@@ -160,7 +162,7 @@ def render(config):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('config_path', default="ply_template_cfg.yml", help="Path to config file")
+    parser.add_argument('config_path', default="mesh_templates_cfg.yaml", help="Path to config file")
     args = parser.parse_args()
 
     dirname = os.path.dirname(__file__)
