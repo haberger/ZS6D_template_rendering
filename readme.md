@@ -1,6 +1,6 @@
 ## Template rendering for ZS6D: Zero-shot 6D Object Pose Estimation using Vision Transformers
 
-1. Set up conda environment:
+1. Set up [conda](https://docs.anaconda.com/miniconda/) environment:
 
 ```conda env create -f env.yml```
 
