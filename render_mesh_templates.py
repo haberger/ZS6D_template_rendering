@@ -157,7 +157,7 @@ def render(config):
         else:
             print(f"Directory '{obj_data_dir}' already exists.")
 
-        for idx_frame, obj_pose in enumerate(poses[:3]):
+        for idx_frame, obj_pose in enumerate(poses):
             # if i != 0:
             #     break
             for obj in obj_parts:
