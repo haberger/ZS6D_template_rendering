@@ -44,7 +44,7 @@ def render(config):
                 category_ids.append(filename[:-4])
                 obj.set_cp("category_id", filename[:-4])
                 obj.set_shading_mode('auto')
-                mesh_objs.append(obj)
+                mesh_objs.append([obj])
             if config['mesh_type'] == "obj":
                 if filename[-3:] != "obj":
                     continue
@@ -56,32 +56,50 @@ def render(config):
                 obj.set_cp("category_id", filename[:-4])
                 obj.hide(True) 
                 obj.set_shading_mode('auto')
-                mesh_objs.append(obj)
+                mesh_objs.append([obj])
+            if config['mesh_type'] == "blend":
+                obj_parts = []
+                if filename[-5:] != "blend":
+                    continue
+                objs = bproc.loader.load_blend(os.path.join(mesh_dir, filename))
+                for obj in objs:
+                    if obj.get_name() == filename[:-6]:
+                        continue
+                    # category_ids.append(obj.get_cp("category_id"))
+                    obj.set_cp("category_id", filename[:-6])
+                    obj.hide(True) 
+                    obj.set_shading_mode('auto')
+                    obj_parts.append(obj)
+                mesh_objs.append(obj_parts)
 
     if len(mesh_objs) == 0:
         raise Exception("No objects loaded from dir: {mesh_dir}")
     
-    for obj in mesh_objs:
-        obj.blender_obj.scale *= config["mesh_scale"]
-        obj.persist_transformation_into_mesh()
+    for obj_parts in mesh_objs:
+        for obj in obj_parts:
+            obj.blender_obj.scale *= config["mesh_scale"]
+            obj.persist_transformation_into_mesh()
 
     if config['set_color'] == "Grey":
         print("Setting color to grey")
-        for j, obj in enumerate(mesh_objs):
-            obj.set_shading_mode('auto')
-            mat = obj.get_materials()[0]
-            grey_col = np.random.uniform(0.5, 0.7)   
-            mat.set_principled_shader_value("Base Color", [grey_col, grey_col, grey_col, 1])
+        for obj_parts in mesh_objs:
+            for j, obj in enumerate(obj_parts):
+                obj.set_shading_mode('auto')
+                mat = obj.get_materials()[0]
+                grey_col = np.random.uniform(0.5, 0.7)   
+                mat.set_principled_shader_value("Base Color", [grey_col, grey_col, grey_col, 1])
     elif config['set_color'] == "RandomTexture":
         print("Loading cc textures")
         cc_textures = bproc.loader.load_ccmaterials(config["texture_dir"])
-        for j, obj in enumerate(mesh_objs):
-            random_cc_texture = np.random.choice(cc_textures)
-            obj.replace_materials(random_cc_texture)
-            mat = obj.get_materials()[0]      
-            mat.set_principled_shader_value("Alpha", 1.0)
+        for obj_parts in mesh_objs:
+            for j, obj in enumerate(obj_parts):
+                random_cc_texture = np.random.choice(cc_textures)
+                obj.replace_materials(random_cc_texture)
+                mat = obj.get_materials()[0]      
+                mat.set_principled_shader_value("Alpha", 1.0)
     elif config['set_color'] == "False":
-        mat = obj.get_materials()[0]
+        pass
+        # mat = obj.get_materials()[0]
         # mat.set_principled_shader_value("Roughness", 0.5)
         # mat.set_principled_shader_value("Specular", 0.0)
     else:
@@ -112,9 +130,10 @@ def render(config):
     # bpy.ops.object.origin_set(type="ORIGIN_GEOMETRY", center="BOUNDS")
 
     # set shading
-    for j, obj in enumerate(mesh_objs):
-        obj.set_shading_mode('auto')
-        obj.hide(True)
+    for obj_parts in mesh_objs:
+        for j, obj in enumerate(obj_parts):
+            obj.set_shading_mode('auto')
+            obj.hide(True)
 
 
     cam2world = bproc.math.change_source_coordinate_frame_of_transformation_matrix(
@@ -129,20 +148,21 @@ def render(config):
     black_img = Image.new('RGB', (config["cam"]["width"], config["cam"]["height"]))
     name = config['dataset_name']
     # i = 0
-    for obj in mesh_objs:
-        obj.hide(False)
-        
-        obj_data_dir = os.path.join(config['output_dir'], name, f'obj_{obj.get_cp("category_id")}')
+    for obj_parts in mesh_objs:
+        obj_data_dir = os.path.join(config['output_dir'], name, f'obj_{obj_parts[0].get_cp("category_id")}')
 
         if not os.path.exists(obj_data_dir):
             os.makedirs(obj_data_dir)
             print(f"Directory '{obj_data_dir}' created.")
         else:
             print(f"Directory '{obj_data_dir}' already exists.")
-        for idx_frame, obj_pose in enumerate(poses):
+
+        for idx_frame, obj_pose in enumerate(poses[:3]):
             # if i != 0:
             #     break
-            obj.set_local2world_mat(obj_pose)
+            for obj in obj_parts:
+                obj.hide(False)
+                obj.set_local2world_mat(obj_pose)
             # break
             data = bproc.renderer.render()
             #data.update(bproc.renderer.render_segmap(map_by="class", use_alpha_channel=True))
@@ -155,7 +175,8 @@ def render(config):
             rgb = Image.fromarray(np.uint8(data["colors"][0]))
             img = Image.composite(rgb, black_img, mask)
             img.save(os.path.join(obj_data_dir, "{:06d}.png".format(idx_frame)))
-        obj.hide(True)
+        for obj in obj_parts:
+            obj.hide(True)
     poses[:, :3, :3] = poses[:, :3, :3] * factor
     poses[:, :3, 3] = poses[:, :3, 3] * factor
     np.save(os.path.join(config['output_dir'], name, "obj_poses.npy"), poses)
