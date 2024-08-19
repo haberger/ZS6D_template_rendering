@@ -1,12 +1,13 @@
-model_dir: "/home/daviddylan/work/tiny_objects_dataset/DATASET" #path to mesh files
-mesh_type: "blend" #set meth type "obj", "ply", "blend"
-mesh_scale: 1000 #set scale of meshes expects the mesh to be in mm. If meter set to "1000"
-dataset_name: "mesh" #dataset_name
-output_dir: "output" #output folder
+model_dir: "/home/v4r/demo/datasets/custom/" #path to mesh files
+mesh_type: "ply" #set meth type "obj", "ply", "blend"
+mesh_scale: 1 #set scale of meshes expects the mesh to be in mm. If meter set to "1000"
+dataset_name: "custom" #dataset_name
+output_dir: "/home/v4r/demo/pose_estimators/zs6d_sasha/templates/" #output folder
+output_dir_zs6d_configs: "/home/v4r/demo/pose_estimators/zs6d_sasha/zs6d_configs/" #output folder for zs6d_configs
 obj_pose: "predefined_poses/obj_poses_level1.npy" # level 0:  42 poses, level 1: 162 poses
 cam_pose: "predefined_poses/cam_poses_level1.npy" # level 2: 642 poses, level 3: 2562 poses for more poses check readme
 poses: "all" # all -> templates from all angles, upper -> templates from upper hemisphere
-camera_distance_scaling: 0.15 # scaling of camera distance: smaller -> closer
+camera_distance_scaling: 0.8 # scaling of camera distance: smaller -> closer
 set_color: "False" # set color "Grey", "RandomTexture", "False"
 texture_dir: "home/textures" # path to textures used for RandomTexture download via "blenderproc download cc_textures"
 

@@ -4,7 +4,8 @@ import os
 import numpy as np
 from PIL import Image
 import yaml
-import sys
+import json
+import bpy
 
 def render(config):
 
@@ -29,9 +30,11 @@ def render(config):
     mesh_dir = config['model_dir']
 
     files = sorted(os.listdir(mesh_dir))
+    object_mapping = {}
     if len(files) == 0:
         print(f"Warning: no objects loaded from dir: {mesh_dir}")
     else:
+        idx = 1
         for filename in sorted(os.listdir(mesh_dir)):
             if config['mesh_type'] == "ply":
                 if filename[-3:] != "ply":
@@ -45,6 +48,8 @@ def render(config):
                 obj.set_cp("category_id", filename[:-4])
                 obj.set_shading_mode('auto')
                 mesh_objs.append([obj])
+                object_mapping[filename[:-4]] = str(idx)
+                idx += 1
             if config['mesh_type'] == "obj":
                 if filename[-3:] != "obj":
                     continue
@@ -57,6 +62,8 @@ def render(config):
                 obj.hide(True) 
                 obj.set_shading_mode('auto')
                 mesh_objs.append([obj])
+                object_mapping[filename[:-4]] = str(idx)
+                idx += 1
             if config['mesh_type'] == "blend":
                 obj_parts = []
                 if filename[-5:] != "blend":
@@ -70,10 +77,26 @@ def render(config):
                     obj.hide(True) 
                     obj.set_shading_mode('auto')
                     obj_parts.append(obj)
+                    object_mapping[filename[:-6]] = str(idx)
+                    idx += 1
                 mesh_objs.append(obj_parts)
 
     if len(mesh_objs) == 0:
         raise Exception("No objects loaded from dir: {mesh_dir}")
+    
+    name = config['dataset_name']
+    models_dir = os.path.join(config['output_dir'], name, "models")
+    if not os.path.exists(models_dir):
+        os.makedirs(models_dir)
+        print(f"Directory '{models_dir}' created.")
+    else:
+        print(f"Directory '{models_dir}' already exists.")
+
+    for obj_parts in mesh_objs:
+        bpy.ops.object.select_all(action='DESELECT')
+        for obj in obj_parts:
+            obj.blender_obj.select_set(True)
+        bpy.ops.export_mesh.ply(filepath=os.path.join(models_dir, f"obj_{int(object_mapping[obj_parts[0].get_cp('category_id')]):06d}.ply"), use_selection=True, use_colors=True)
     
     for obj_parts in mesh_objs:
         for obj in obj_parts:
@@ -146,10 +169,9 @@ def render(config):
     bproc.renderer.enable_distance_output(True)
 
     black_img = Image.new('RGB', (config["cam"]["width"], config["cam"]["height"]))
-    name = config['dataset_name']
-    # i = 0
+    
     for obj_parts in mesh_objs:
-        obj_data_dir = os.path.join(config['output_dir'], name, f'obj_{obj_parts[0].get_cp("category_id")}')
+        obj_data_dir = os.path.join(config['output_dir'], name, f'obj_{object_mapping[obj_parts[0].get_cp("category_id")]}')
 
         if not os.path.exists(obj_data_dir):
             os.makedirs(obj_data_dir)
@@ -158,8 +180,6 @@ def render(config):
             print(f"Directory '{obj_data_dir}' already exists.")
 
         for idx_frame, obj_pose in enumerate(poses):
-            # if i != 0:
-            #     break
             for obj in obj_parts:
                 obj.hide(False)
                 obj.set_local2world_mat(obj_pose)
@@ -181,9 +201,36 @@ def render(config):
     poses[:, :3, 3] = poses[:, :3, 3] * factor
     np.save(os.path.join(config['output_dir'], name, "obj_poses.npy"), poses)
 
+
+    template_gt_config = {}
+    template_gt_config["path_templates_folder"] = os.path.join("./templates/", config['dataset_name'])
+    template_gt_config["path_template_poses"] = os.path.join("./templates/", config['dataset_name'], "obj_poses.npy")
+    template_gt_config["path_object_models_folder"] = os.path.join("./templates/", config['dataset_name'], "models")
+    template_gt_config["obj_models_scale"] = 0.001
+    template_gt_config["path_output_templates_and_descs_folder"] = os.path.join("./templates/", config['dataset_name'] + "_desc")
+    template_gt_config["path_output_models_xyz"] = os.path.join("./templates/", config['dataset_name'] + "_desc", "models_xyz")
+    template_gt_config["cam_K"] = config["cam"]["K"]
+    template_gt_config["template_resolution"] = [config["cam"]["width"], config["cam"]["height"]]
+    template_gt_config["output_template_gt_file"] = os.path.join("./gts/template_gts/", config['dataset_name'] + "_template_gt.json")
+    # write config file as json
+    with open(os.path.join(config['output_dir_zs6d_configs'], "template_gt_preparation_configs", f"cfg_template_gt_generation_{config['dataset_name']}.json"), "w") as f:
+        json.dump(template_gt_config, f, indent=2)
+
+    zs6d_config = {}
+    zs6d_config["templates_gt_path"] = template_gt_config["output_template_gt_file"]
+    zs6d_config["template_subset"] = 1
+    zs6d_config["norm_factor_path"] = os.path.join("./templates/", config['dataset_name'] + "_desc", "models_xyz", "norm_factor.json")
+    zs6d_config["image_resolution"] = [config["cam"]["height"], config["cam"]["width"]]
+    zs6d_config["cam_K"] = [538.391033533567, 0.0, 315.3074696331638, 0.0, 538.085452058436, 233.0483557773859, 0.0, 0.0, 1.0]
+    zs6d_config["object_mapping"] = object_mapping
+
+    # write config file as json
+    with open(os.path.join(config['output_dir_zs6d_configs'], "bop_eval_configs", f"cfg_{config['dataset_name']}_inference_bop.json"), "w") as f:
+        json.dump(zs6d_config, f, indent=2)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('config_path', default="mesh_templates_cfg.yaml", help="Path to config file")
+    parser.add_argument('--config_path', default="mesh_templates_cfg.yaml", help="Path to config file")
     args = parser.parse_args()
 
     dirname = os.path.dirname(__file__)

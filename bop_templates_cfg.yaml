@@ -1,6 +1,6 @@
-bop_parent_path: "/home/david/work/bop_dataset" #path to BOP dataset (only the meshes and base are needed), can be downloaded from https://bop.felk.cvut.cz/datasets/
+bop_parent_path: "/home/v4r/demo/datasets/" #path to mesh files #path to BOP dataset (only the meshes and base are needed), can be downloaded from https://bop.felk.cvut.cz/datasets/
 bop_dataset_name: "ycbv" #support for lm, tless, ycbv, hb, tyol, itodd
-output_dir: "output" #output folder for the rendered templates
+output_dir: "/home/v4r/demo/pose_estimators/zs6d_sasha/templates/" #output folder
 obj_pose: "predefined_poses/obj_poses_level1.npy" # choose the level depending on how many poses you want to render:
                                                   # obj_pose and cam_pose must have the same level
 #                                                 # level 0:  42 poses, level 1: 162 poses
